@@ -1,6 +1,6 @@
 import json
 
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 
 # gives formatted error messages
@@ -29,7 +29,8 @@ def errorHandling(code, body=None):
         print(code_body)
     else:
         code_body = codes[code]
-    return HttpResponse("Error {}: {}".format(code, code_body), status=400)
+    # this needs changing to be status, error code, comment
+    return JsonResponse({"ErrorCode": code, "Comment": code_body}, status=400)
 
 
 # check method is correct and body isn't null

@@ -20,5 +20,5 @@ import cw2.views as views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('initiatePayment/', views.initiatePayment)
+    path('initiatePayment/', views.InitiatePayment)
 ]
