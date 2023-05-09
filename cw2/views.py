@@ -37,5 +37,46 @@ def initiatePayment(request):
         return bodyStatus
 
     # carry on as normal
+    return HttpResponse("initiatePayment")
+
+@csrf_exempt
+def initiateRefund(request):
+    # returns the data or error message and boolean indicating which that is
+    data, methodStatus = checkMethod(request)
+    print(data)
+    # data contains error message if the body wasn't in the correct format
+    if not methodStatus:
+        return data
+
+    correct_keys = {"TransactionUUID": str,
+                    "Amount": float,
+                    "CurrencyCode": int,
+                    }
+
+    # stores None if formatted correctly, else returns an error message
+    bodyStatus = checkBody(data, correct_keys)
+    if bodyStatus is not None:
+        return bodyStatus
+
+    # carry on as normal
+    return HttpResponse("refundPayment")
+
+@csrf_exempt
+def initiateCancellation(request):
+    # returns the data or error message and boolean indicating which that is
+    data, methodStatus = checkMethod(request)
+    print(data)
+    # data contains error message if the body wasn't in the correct format
+    if not methodStatus:
+        return data
+
+    correct_keys = {"TransactionUUID": str}
+
+    # stores None if formatted correctly, else returns an error message
+    bodyStatus = checkBody(data, correct_keys)
+    if bodyStatus is not None:
+        return bodyStatus
+
+    # carry on as normal
     return HttpResponse("Hello")
 

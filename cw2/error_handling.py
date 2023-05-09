@@ -16,7 +16,7 @@ def errorHandling(code, body=None):
         101: 'Request body in incorrect format',
         102: 'Could not find field "{}".',
         103: 'Field "{}" is a {}, when {} was expected.',
-        104: 'Invalid Field(s): {}',
+        104: 'Invalid Field "{}"',
         105: 'Request type is not POST',
         201: 'An error occurred with currency conversion.',
         301: 'An error occurred with contacting the Payment Network Service.',
@@ -68,9 +68,13 @@ def checkBody(data, required):
     for field in required:
         if field not in data:
             return errorHandling(102, field)
-
         if not isinstance(data[field], required[field]):
             return errorHandling(103, [field, data[field], required[field]])
+
+    # check for no addition fields in the body
+    newFields = set(required).symmetric_difference(set(data))
+    if len(newFields) != 0:
+        return errorHandling(104, list(newFields)[0])
 
     # if here then initial validation has been passed
     return None
