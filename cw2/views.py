@@ -1,10 +1,12 @@
-import json
-from datetime import datetime, date
+import re
+from datetime import date, datetime
 
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from cw2.error_handling import errorHandling, checkBody, checkMethod
 import requests
+import luhn
+from cw2.models import Transaction, PersonalAccount, BusinessAccount, PaymentDetails, BankDetails
 
 
 # if it's a guest put the person id as 0 and process transaction as usual
@@ -20,7 +22,7 @@ def InitiatePayment(request):
         return data
 
     correct_keys = {"CardNumber": str,
-                    "CVV": int,
+                    "CVV": str,
                     "Expiry": str,
                     "CardHolderName": str,
                     "CardHolderAddress": str,
@@ -38,13 +40,47 @@ def InitiatePayment(request):
     if bodyStatus is not None:
         return bodyStatus
 
-    # more validation here
+    # the data being stored in the database, of any conversions are required they're stored here
+    modelData = {}
+
+    # check all fields fit their specific criteria
+
+    # in case of spaces in credit card number
+    data["CardNumber"] = data["CardNumber"].strip()
+    # check correct length and card number formatting
+    if len(data["CardNumber"]) < 8 or len(data["CardNumber"]) > 16 or not luhn.verify(data["CardNumber"]):
+        return errorHandling(104, "CardNumber")
+
+    # check made up of only numbers and is 3-4 characters long
+    if not data["CVV"].isdigit() or len(data["CVV"]) not in (3,4):
+        return errorHandling(104, "CVV")
+
+    # check expiry is in date format
+    try:
+        modelData["Expiry"] = datetime.strptime(data["Expiry"], '%Y-%m-%d').date()
+    except:
+        return errorHandling(104, "Expiry")
+
+    # Check card-holder name isn't too long
+    if len(data["CardHolderName"]) > 80:
+        return errorHandling(104, "CardHolderName")
+
+    # Check email is valid syntactically
+    emailRegex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
+    if not re.fullmatch(emailRegex, data["Email"]):
+        return errorHandling(104, "Email")
+
+    # check that the payer exists with the correct card details
+
+    # check that the payee exists with the correct bank details
+
+
     currencyData = {"CurrencyFrom": data["PayerCurrencyCode"], "CurrencyTo": data["PayeeCurrencyCode"],
                     "Date": str(date.today()), "Amount": data["Amount"]}
     currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
 
     # error has occurred when converting currency
-    if currencyResponse["Status"] != 400:
+    if currencyResponse["Status"] != 200:
         return errorHandling(201)
 
     # the card we receive is for the payer, the bank details are for the payee
@@ -63,15 +99,16 @@ def InitiatePayment(request):
 
     transactionResponse = RequestTransactionPNS(paymentData)
     # error has occurred when doing transaction
-    if transactionResponse["Status"] != 400:
+    if transactionResponse["StatusCode"] != 200:
         return errorHandling(301)
 
-    # do I now log the transaction?
+    # store the transaction in the database
+
 
     # if here then all was good
     responseData = {"TransactionUUID": transactionResponse["TransactionUUID"],
                     "ErrorCode": None,
-                    "Comment": "Success"
+                    "Comment": "Transaction processed successfully"
                     }
 
     return JsonResponse(responseData, status=200)

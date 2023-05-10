@@ -18,8 +18,14 @@ def errorHandling(code, body=None):
         103: 'Field "{}" is a {}, when {} was expected.',
         104: 'Invalid Field "{}"',
         105: 'Request type is not POST',
+        106: 'Payer card details could not be found',
+        107: 'Payee bank account details could not be found',
         201: 'An error occurred with currency conversion.',
         301: 'An error occurred with contacting the Payment Network Service.',
+        401: 'Could not access database.',
+        402: 'Transaction with ID {} could not be located.',
+        403: 'Refund could not complete.',
+        404: 'Original transaction already refunded or cancelled.'
     }
 
     if code == 102 or code == 104:
