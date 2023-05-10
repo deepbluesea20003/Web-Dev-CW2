@@ -70,7 +70,35 @@ def InitiatePayment(request):
     if not re.fullmatch(emailRegex, data["Email"]):
         return errorHandling(104, "Email")
 
-    # check that the payer exists with the correct card details
+    if not data["PayeeBankAccNum"].isdigit() or len(data["PayeeBankAccNum"]) > 8 or len(data["PayeeBankAccNum"]) < 1:
+        return errorHandling(104, "PayeeBankAccNum")
+
+    # remove any - separators and ensure length is 6
+    modelData["PayeeBankSortCode"] = data["PayeeBankSortCode"].replace("-", "")
+    if not modelData["PayeeBankSortCode"].isdigit() or len(modelData["PayeeBankSortCode"]) !=6:
+        return errorHandling(104, "PayeeBankSortCode")
+
+    # Check card-holder name isn't too long
+    if len(data["RecipientName"]) > 80:
+        return errorHandling(104, "RecipientName")
+
+    # positive amounts only
+    if data["Amount"] < 0:
+        return errorHandling(104, "Amount")
+
+    # check that the personal account of the payer exists
+    personalData = PaymentDetails.objects.filter(cardNumber=data["CardNumber"],
+                                           securityCode=data["CVV"]).values()
+
+    # incorrect card number of CVV
+    if len(personalData) != 1:
+        return errorHandling(108)
+
+    # incorrect expiry date
+    if personalData[0]["expiryDate"].date() != modelData["Expiry"]:
+        return errorHandling(108)
+
+
 
     # check that the payee exists with the correct bank details
 
@@ -103,7 +131,7 @@ def InitiatePayment(request):
         return errorHandling(301)
 
     # store the transaction in the database
-
+    confirmedTransaction = Transaction()
 
     # if here then all was good
     responseData = {"TransactionUUID": transactionResponse["TransactionUUID"],

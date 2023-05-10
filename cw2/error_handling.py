@@ -20,6 +20,8 @@ def errorHandling(code, body=None):
         105: 'Request type is not POST',
         106: 'Payer card details could not be found',
         107: 'Payee bank account details could not be found',
+        108: 'Payer personal account could not be found',
+        109: 'Payee business account details could not be found',
         201: 'An error occurred with currency conversion.',
         301: 'An error occurred with contacting the Payment Network Service.',
         401: 'Could not access database.',
