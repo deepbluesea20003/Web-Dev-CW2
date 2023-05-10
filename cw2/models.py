@@ -30,7 +30,7 @@ class Transaction(models.Model):
     amount = models.FloatField()
     currency = models.TextField()
     date = models.DateTimeField()
-    transactionStatus = models.TextField()
+    transactionStatus = models.TextField()  # initiated, completed, refunded, cancelled
 
 
 class PaymentDetails(models.Model):
@@ -44,4 +44,3 @@ class BankDetails(models.Model):
     accountNumber = models.IntegerField(primary_key=True)
     sortCode = models.TextField()
     accountName = models.TextField()
-

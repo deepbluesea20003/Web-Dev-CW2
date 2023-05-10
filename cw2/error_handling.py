@@ -24,17 +24,16 @@ def errorHandling(code, body=None):
         109: 'Payee business account details could not be found',
         201: 'An error occurred with currency conversion.',
         301: 'An error occurred with contacting the Payment Network Service.',
-        401: 'Could not access database.',
+        401: 'Could not make changes to database: {}',
         402: 'Transaction with ID {} could not be located.',
         403: 'Refund could not complete.',
         404: 'Original transaction already refunded or cancelled.'
     }
 
-    if code == 102 or code == 104:
+    if code in (102, 104, 401):
         code_body = codes[code].format(body)
     elif code == 103:
         code_body = codes[code].format(body[0], type(body[1]).__name__, body[2].__name__)
-        print(code_body)
     else:
         code_body = codes[code]
     # this needs changing to be status, error code, comment

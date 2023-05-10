@@ -122,14 +122,17 @@ def InitiatePayment(request):
         return errorHandling(107)
 
     # see if bank corresponds to business account
-    businessData = BusinessAccount.objects.filter(bankDetails=allBankData[0].accountNumber).all()
+    allBusinessData = BusinessAccount.objects.filter(bankDetails=allBankData[0].accountNumber).all()
 
     # if no corresponding account
-    if len(businessData) != 1:
+    if len(allBusinessData) != 1:
         return errorHandling(109)
 
+    # trim query
+    businessData = allBusinessData[0]
+
     # if other details don't also match
-    if businessData[0].businessName != data["RecipientName"]:
+    if businessData.businessName != data["RecipientName"]:
         return errorHandling(109)
 
     currencyData = {"CurrencyFrom": data["PayerCurrencyCode"], "CurrencyTo": data["PayeeCurrencyCode"],
@@ -139,8 +142,6 @@ def InitiatePayment(request):
     # error has occurred when converting currency
     if currencyResponse["Status"] != 200:
         return errorHandling(201)
-
-    # the card we receive is for the payer, the bank details are for the payee
 
     # else we now talk to PNS and get them to initiate the payment itself
     paymentData = {"CardNumber": data["CardNumber"],
@@ -159,10 +160,31 @@ def InitiatePayment(request):
     if transactionResponse["StatusCode"] != 200:
         return errorHandling(301)
 
-    # store the transaction in the database
-    confirmedTransaction = Transaction()
+    """
+        id = models.IntegerField(primary_key=True)
+        payer = models.ForeignKey('PersonalAccount', on_delete=models.CASCADE)
+        payee = models.ForeignKey('BusinessAccount', on_delete=models.CASCADE)
+        amount = models.FloatField()
+        currency = models.TextField()
+        date = models.DateTimeField()
+        transactionStatus = models.TextField()  # completed, refunded, cancelled
+    """
 
-    # if here then all was good
+    # store the transaction in the database
+    try:
+        confirmedTransaction = Transaction()
+        confirmedTransaction.id = transactionResponse["TransactionUUID"]
+        confirmedTransaction.payer = payerData
+        confirmedTransaction.payee = businessData
+        confirmedTransaction.amount = currencyResponse["Amount"]
+        confirmedTransaction.currency = data["PayeeCurrencyCode"]
+        confirmedTransaction.date = datetime.now()
+        confirmedTransaction.transactionStatus = "Completed"
+        confirmedTransaction.save()
+    except Exception as e:
+        return errorHandling(401, str(e))
+
+    # returning positive response
     responseData = {"TransactionUUID": transactionResponse["TransactionUUID"],
                     "ErrorCode": None,
                     "Comment": "Transaction processed successfully"
@@ -210,8 +232,12 @@ def InitiateCancellation(request):
     if bodyStatus is not None:
         return bodyStatus
 
-    # carry on as normal
-    return HttpResponse("initiate cancellation")
+    # returning positive response
+    responseData = {"ErrorCode": None,
+                    "Comment": "Transaction processed successfully"
+                    }
+
+    return JsonResponse(responseData, status=200)
 
 
 def ConvertCurrency(data):
@@ -221,7 +247,8 @@ def ConvertCurrency(data):
     # this will be changed once their API is up and running
     # content = response.content
 
-    content = {"Status": 200, "Error code": 123, "Amount": 120.00}
+    # if success, this will be passed to us
+    content = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
 
     return content
 
