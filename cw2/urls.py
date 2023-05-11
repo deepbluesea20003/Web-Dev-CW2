@@ -15,10 +15,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-# from cw2.views import *
 import cw2.views as views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('initiatePayment/', views.InitiatePayment)
+    path('initiatePayment/', views.InitiatePayment),
+    path('initiateRefund/', views.InitiateRefund),
+    path('InitiateCancellation/', views.InitiateCancellation)
 ]

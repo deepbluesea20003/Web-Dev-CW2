@@ -143,7 +143,7 @@ def InitiatePayment(request):
     if currencyResponse["Status"] != 200:
         return errorHandling(201)
 
-    # else we now talk to PNS and get them to initiate the payment itself
+    # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"CardNumber": data["CardNumber"],
                    "Expiry": data["Expiry"],
                    "CVV": data["CVV"],
@@ -160,16 +160,6 @@ def InitiatePayment(request):
     if transactionResponse["StatusCode"] != 200:
         return errorHandling(301)
 
-    """
-        id = models.IntegerField(primary_key=True)
-        payer = models.ForeignKey('PersonalAccount', on_delete=models.CASCADE)
-        payee = models.ForeignKey('BusinessAccount', on_delete=models.CASCADE)
-        amount = models.FloatField()
-        currency = models.TextField()
-        date = models.DateTimeField()
-        transactionStatus = models.TextField()  # completed, refunded, cancelled
-    """
-
     # store the transaction in the database
     try:
         confirmedTransaction = Transaction()
@@ -179,7 +169,7 @@ def InitiatePayment(request):
         confirmedTransaction.amount = currencyResponse["Amount"]
         confirmedTransaction.currency = data["PayeeCurrencyCode"]
         confirmedTransaction.date = datetime.now()
-        confirmedTransaction.transactionStatus = "Completed"
+        confirmedTransaction.transactionStatus = "Complete"
         confirmedTransaction.save()
     except Exception as e:
         return errorHandling(401, str(e))
@@ -204,7 +194,7 @@ def InitiateRefund(request):
 
     correct_keys = {"TransactionUUID": str,
                     "Amount": float,
-                    "CurrencyCode": int,
+                    "CurrencyCode": str,
                     }
 
     # stores None if formatted correctly, else returns an error message
@@ -212,8 +202,60 @@ def InitiateRefund(request):
     if bodyStatus is not None:
         return bodyStatus
 
-    # carry on as normal
-    return HttpResponse("refundPayment")
+    # amount needs to be more than zero
+    if data["Amount"] < 0.00:
+        return errorHandling(104, "Amount")
+
+    # check transaction exists
+    queriedTransactions = Transaction.objects.filter(id=data["TransactionUUID"]).all()
+
+    # if no corresponding account
+    if len(queriedTransactions) != 1:
+        return errorHandling(402, data["TransactionUUID"])
+
+    oldTransaction = queriedTransactions[0]
+    if oldTransaction.transactionStatus != "Complete":
+        return errorHandling(404)
+
+    currencyData = {"CurrencyFrom": data["CurrencyCode"], "CurrencyTo": oldTransaction.currency,
+                    "Date": str(date.today()), "Amount": oldTransaction.amount}
+    currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
+
+    # error has occurred when converting currency
+    if currencyResponse["Status"] != 200:
+        return errorHandling(201)
+
+    # we now talk to PNS and get them to initiate the payment itself
+    paymentData = {"TransactionUUID": data["TransactionUUID"],
+                   "Amount": currencyResponse["Amount"],
+                   "CurrencyCode": data["CurrencyCode"],
+                   }
+
+    transactionResponse = RequestRefundPNS(paymentData)
+    # error has occurred when doing transaction
+    if transactionResponse["StatusCode"] != 200:
+        return errorHandling(403)
+
+    # store the transaction in the database
+    try:
+        refundedTransaction = Transaction()
+        refundedTransaction.id = None
+        refundedTransaction.payer = oldTransaction.payer
+        refundedTransaction.payee = oldTransaction.payee
+        refundedTransaction.amount = oldTransaction.amount
+        refundedTransaction.currency = oldTransaction.currency
+        refundedTransaction.date = datetime.now()
+        refundedTransaction.transactionStatus = "Refund"
+        refundedTransaction.save()
+    except Exception as e:
+        return errorHandling(401, str(e))
+
+    # returning positive response
+    responseData = {"ErrorCode": None,
+                    "Comment": "Transaction refunded successfully"
+                    }
+
+    return JsonResponse(responseData, status=200)
 
 
 @csrf_exempt
@@ -232,9 +274,26 @@ def InitiateCancellation(request):
     if bodyStatus is not None:
         return bodyStatus
 
+    # check transaction exists
+    queriedTransactions = Transaction.objects.filter(id=data["TransactionUUID"]).all()
+
+    # if no corresponding account
+    if len(queriedTransactions) != 1:
+        return errorHandling(402, data["TransactionUUID"])
+
+    oldTransaction = queriedTransactions[0]
+    if oldTransaction.transactionStatus != "Complete":
+        return errorHandling(404)
+
+    try:
+        oldTransaction.transactionStatus = "Cancelled"
+        oldTransaction.save()
+    except Exception as e:
+        return errorHandling(401, str(e))
+
     # returning positive response
     responseData = {"ErrorCode": None,
-                    "Comment": "Transaction processed successfully"
+                    "Comment": "Transaction cancelled successfully"
                     }
 
     return JsonResponse(responseData, status=200)
@@ -264,24 +323,14 @@ def RequestTransactionPNS(data):
 
     return content
 
+def RequestRefundPNS(data):
+    # post to currency converter API and get response
+    response = requests.post('http://example.com', data=data)
 
-@csrf_exempt
-def RequestRefundPNS(request):
-    # returns the data or error message and boolean indicating which that is
-    data, methodStatus = checkMethod(request)
-    print(data)
-    # data contains error message if the body wasn't in the correct format
-    if not methodStatus:
-        return data
+    # this will be changed once their API is up and running
+    # content = response.content
 
-    correct_keys = {"TransactionUUID": str,
-                    "Amount": float,
-                    "CurrencyCode": int}
+    content = {"StatusCode": 200, "Comment": 120.00}
 
-    # stores None if formatted correctly, else returns an error message
-    bodyStatus = checkBody(data, correct_keys)
-    if bodyStatus is not None:
-        return bodyStatus
+    return content
 
-    # carry on as normal
-    return HttpResponse("request refund PNS")

@@ -4,11 +4,12 @@ from django.http import HttpResponse, JsonResponse
 
 
 # gives formatted error messages
-def errorHandling(code, body=None):
+def errorHandling(code, body=None, passedComment=False):
     """
 
     :param code: an integer code corresponding to the error message
     :param body: a list of all other strings required for error message, defaults to None
+    :param passedComment: boolean value stating whether we are passing on a comment from a different API
     :return: an HTTP formatted error message
     """
     codes = {
@@ -29,14 +30,16 @@ def errorHandling(code, body=None):
         403: 'Refund could not complete.',
         404: 'Original transaction already refunded or cancelled.'
     }
-
-    if code in (102, 104, 401):
-        code_body = codes[code].format(body)
-    elif code == 103:
-        code_body = codes[code].format(body[0], type(body[1]).__name__, body[2].__name__)
+    if not passedComment:
+        # should maybe be changed to display the error returned by PNS
+        if code in (102, 104, 401, 402):
+            code_body = codes[code].format(body)
+        elif code == 103:
+            code_body = codes[code].format(body[0], type(body[1]).__name__, body[2].__name__)
+        else:
+            code_body = codes[code]
     else:
-        code_body = codes[code]
-    # this needs changing to be status, error code, comment
+        code_body = body
     return JsonResponse({"ErrorCode": code, "Comment": code_body}, status=400)
 
 
