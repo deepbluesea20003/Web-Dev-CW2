@@ -8,10 +8,6 @@ import requests
 import luhn
 from cw2.models import Transaction, PersonalAccount, BusinessAccount, PaymentDetails, BankDetails
 
-
-# if it's a guest put the person id as 0 and process transaction as usual
-#
-
 @csrf_exempt
 def InitiatePayment(request):
     # returns the data or error message and boolean indicating which that is
@@ -332,7 +328,7 @@ def RequestTransactionPNS(data):
     # this will be changed once their API is up and running
     # content = response.content
 
-    content = {"StatusCode": 200, "TransactionUUID": 123, "Comment": 120.00}
+    content = {"StatusCode": 200, "TransactionUUID": "123", "Comment": "All good here"}
 
     return content
 
@@ -343,7 +339,7 @@ def RequestRefundPNS(data):
     # this will be changed once their API is up and running
     # content = response.content
 
-    content = {"StatusCode": 200, "Comment": 120.00}
+    content = {"StatusCode": 200, "Comment": "Refund all good"}
 
     return content
 
