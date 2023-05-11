@@ -58,8 +58,8 @@ def checkMethod(request):
             data = json.loads(request.body)
             # if data exists then return it
             return data, True
-        except Exception:  # body is in bad format
-            return errorHandling(101), False
+        except Exception as e:  # body is in bad format
+            return errorHandling(101, body=str(e), passedComment=True)
 
 
 # Checks that the fields passed to the function are correct and aren't none
