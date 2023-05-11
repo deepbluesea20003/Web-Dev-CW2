@@ -141,7 +141,10 @@ def InitiatePayment(request):
 
     # error has occurred when converting currency
     if currencyResponse["Status"] != 200:
-        return errorHandling(201,body=currencyResponse)
+        if "Comment" in currencyResponse:
+            return errorHandling(201, body=currencyResponse["Comment"], passedComment=True)
+        else:
+            return errorHandling(201)
 
     # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"CardNumber": data["CardNumber"],
@@ -158,7 +161,11 @@ def InitiatePayment(request):
     transactionResponse = RequestTransactionPNS(paymentData)
     # error has occurred when doing transaction
     if transactionResponse["StatusCode"] != 200:
-        return errorHandling(301)
+        if "Comment" in transactionResponse:
+            return errorHandling(301, body=transactionResponse["Comment"], passedComment=True)
+        else:
+            return errorHandling(301)
+
 
     # store the transaction in the database
     try:
@@ -223,7 +230,10 @@ def InitiateRefund(request):
 
     # error has occurred when converting currency
     if currencyResponse["Status"] != 200:
-        return errorHandling(201)
+        if "Comment" in currencyResponse:
+            return errorHandling(201, body=currencyResponse["Comment"], passedComment=True)
+        else:
+            return errorHandling(201)
 
     # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"TransactionUUID": data["TransactionUUID"],
@@ -234,7 +244,10 @@ def InitiateRefund(request):
     transactionResponse = RequestRefundPNS(paymentData)
     # error has occurred when doing transaction
     if transactionResponse["StatusCode"] != 200:
-        return errorHandling(403)
+        if "Comment" in transactionResponse:
+            return errorHandling(403, body=transactionResponse["Comment"], passedComment=True)
+        else:
+            return errorHandling(403)
 
     # store the transaction in the database
     try:
