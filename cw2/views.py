@@ -148,7 +148,7 @@ def InitiatePayment(request):
     #     else:
     #         return errorHandling(201)
 
-    currencyResponseData = {"Status": 200, "Error code": None, "Amount": 1.23}
+    currencyResponseData = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
 
     # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"CardNumber": data["CardNumber"],
@@ -238,7 +238,7 @@ def InitiateRefund(request):
     #         return errorHandling(201, body=currencyResponse["Comment"], passedComment=True)
     #     else:
     #         return errorHandling(201)
-    currencyResponseData = {"Status": 200, "Error code": None, "Amount": 1.23}
+    currencyResponseData = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
 
     # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"TransactionUUID": data["TransactionUUID"],
