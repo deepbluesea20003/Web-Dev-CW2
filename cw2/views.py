@@ -80,7 +80,7 @@ def InitiatePayment(request):
         return errorHandling(104, "RecipientName")
 
     # positive amounts only
-    if data["Amount"] < 0:
+    if data["Amount"] <= 0.00:
         return errorHandling(104, "Amount")
 
     # check that the payment account of the payer exists
@@ -141,7 +141,7 @@ def InitiatePayment(request):
 
     # error has occurred when converting currency
     if currencyResponse["Status"] != 200:
-        return errorHandling(201)
+        return errorHandling(201,body=currencyResponse)
 
     # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"CardNumber": data["CardNumber"],
@@ -203,7 +203,7 @@ def InitiateRefund(request):
         return bodyStatus
 
     # amount needs to be more than zero
-    if data["Amount"] < 0.00:
+    if data["Amount"] <= 0.00:
         return errorHandling(104, "Amount")
 
     # check transaction exists
