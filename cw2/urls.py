@@ -19,7 +19,7 @@ import cw2.views as views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('initiatePayment/', views.InitiatePayment),
-    path('initiateRefund/', views.InitiateRefund),
-    path('InitiateCancellation/', views.InitiateCancellation)
+    path('initiatepayment/', views.InitiatePayment),
+    path('initiaterefund/', views.InitiateRefund),
+    path('initiatecancellation/', views.InitiateCancellation)
 ]
