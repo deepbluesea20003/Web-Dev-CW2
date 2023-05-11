@@ -1,3 +1,5 @@
+import json
+import random
 import re
 from datetime import date, datetime
 
@@ -134,11 +136,12 @@ def InitiatePayment(request):
     currencyData = {"CurrencyFrom": data["PayerCurrencyCode"], "CurrencyTo": data["PayeeCurrencyCode"],
                     "Date": str(date.today()), "Amount": data["Amount"]}
     currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
+    currencyResponseData = currencyResponse.json()
 
     # error has occurred when converting currency
-    if currencyResponse["Status"] != 200:
-        if "Comment" in currencyResponse:
-            return errorHandling(201, body=currencyResponse["Comment"], passedComment=True)
+    if currencyResponse.status_code != 200:
+        if "Comment" in currencyResponse.json():
+            return errorHandling(201, body=currencyResponseData["Comment"], passedComment=True)
         else:
             return errorHandling(201)
 
@@ -148,7 +151,7 @@ def InitiatePayment(request):
                    "CVV": data["CVV"],
                    "HolderName": data["CardHolderName"],
                    "BillingAddress": data["CardHolderAddress"],
-                   "Amount": currencyResponse["Amount"],
+                   "Amount": currencyResponseData["Amount"],
                    "CurrencyCode": currencyData["CurrencyTo"],
                    "AccountNumber": data["PayeeBankAccNum"],
                    "Sort-Code": data["PayeeBankSortCode"],
@@ -169,9 +172,9 @@ def InitiatePayment(request):
         confirmedTransaction.id = transactionResponse["TransactionUUID"]
         confirmedTransaction.payer = payerData
         confirmedTransaction.payee = businessData
-        confirmedTransaction.amount = currencyResponse["Amount"]
+        confirmedTransaction.amount = currencyResponseData["Amount"]
         confirmedTransaction.currency = data["PayeeCurrencyCode"]
-        confirmedTransaction.date = datetime.now()
+        confirmedTransaction.date = date(year=2000,month=1,day=1) #datetime.now()
         confirmedTransaction.transactionStatus = "Complete"
         confirmedTransaction.save()
     except Exception as e:
@@ -225,7 +228,7 @@ def InitiateRefund(request):
     currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
 
     # error has occurred when converting currency
-    if currencyResponse["Status"] != 200:
+    if currencyResponse.status_code != 200:
         if "Comment" in currencyResponse:
             return errorHandling(201, body=currencyResponse["Comment"], passedComment=True)
         else:
@@ -309,16 +312,17 @@ def InitiateCancellation(request):
 
 
 def ConvertCurrency(data):
+    data = json.dumps(data)
     # post to currency converter API and get response
-    response = requests.post('http://example.com', data=data)
+    response = requests.post('http://samshepherd.eu.pythonanywhere.com/currency/convert/', data=data)
 
     # this will be changed once their API is up and running
     # content = response.content
 
-    # if success, this will be passed to us
-    content = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
+    # used for testing
+    content = {"Status": 200, "Error code": None, "Amount": 1.23}
 
-    return content
+    return response
 
 
 def RequestTransactionPNS(data):
@@ -328,7 +332,7 @@ def RequestTransactionPNS(data):
     # this will be changed once their API is up and running
     # content = response.content
 
-    content = {"StatusCode": 200, "TransactionUUID": "123", "Comment": "All good here"}
+    content = {"StatusCode": 200, "TransactionUUID": str(random.randint(200)), "Comment": "All good here"}
 
     return content
 
