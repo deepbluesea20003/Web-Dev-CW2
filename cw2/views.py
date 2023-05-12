@@ -175,7 +175,7 @@ def InitiatePayment(request):
     # store the transaction in the database
     try:
         confirmedTransaction = Transaction()
-        confirmedTransaction.id = transactionResponse["TransactionUUID"]
+        confirmedTransaction.id = transactionResponseData["TransactionUUID"]
         confirmedTransaction.payer = payerData
         confirmedTransaction.payee = businessData
         confirmedTransaction.amount = currencyResponseData["Amount"]
@@ -187,7 +187,7 @@ def InitiatePayment(request):
         return errorHandling(401, str(e))
 
     # returning positive response
-    responseData = {"TransactionUUID": transactionResponse["TransactionUUID"],
+    responseData = {"TransactionUUID": transactionResponseData["TransactionUUID"],
                     "ErrorCode": None,
                     "Comment": "Transaction processed successfully"
                     }
