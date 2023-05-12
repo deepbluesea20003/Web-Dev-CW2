@@ -138,17 +138,17 @@ def InitiatePayment(request):
                     "Date": str(date.today()), "Amount": data["Amount"]}
 
     # for testing purposes
-    # currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
-    # currencyResponseData = currencyResponse.json()
-    #
-    # # error has occurred when converting currency
-    # if currencyResponse.status_code != 200:
-    #     if "Comment" in currencyResponseData:
-    #         return errorHandling(201, body=currencyResponseData["Comment"], passedComment=True)
-    #     else:
-    #         return errorHandling(201)
+    currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
+    currencyResponseData = currencyResponse.json()
 
-    currencyResponseData = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
+    # error has occurred when converting currency
+    if currencyResponse.status_code != 200:
+        if "Comment" in currencyResponseData:
+            return errorHandling(201, body=currencyResponseData["Comment"], passedComment=True)
+        else:
+            return errorHandling(201)
+
+    # currencyResponseData = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
 
     # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"CardNumber": data["CardNumber"],
@@ -163,10 +163,11 @@ def InitiatePayment(request):
                    }
 
     transactionResponse = RequestTransactionPNS(paymentData)
+    transactionResponseData = transactionResponse.json()
     # error has occurred when doing transaction
-    if transactionResponse["StatusCode"] != 200:
-        if "Comment" in transactionResponse:
-            return errorHandling(301, body=transactionResponse["Comment"], passedComment=True)
+    if transactionResponse.status_code != 200:
+        if "Comment" in transactionResponseData:
+            return errorHandling(301, body=transactionResponseData["Comment"], passedComment=True)
         else:
             return errorHandling(301)
 
@@ -230,15 +231,16 @@ def InitiateRefund(request):
 
     currencyData = {"CurrencyFrom": data["CurrencyCode"], "CurrencyTo": oldTransaction.currency,
                     "Date": str(date.today()), "Amount": oldTransaction.amount}
-    # currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
-    #
-    # # error has occurred when converting currency
-    # if currencyResponse.status_code != 200:
-    #     if "Comment" in currencyResponse:
-    #         return errorHandling(201, body=currencyResponse["Comment"], passedComment=True)
-    #     else:
-    #         return errorHandling(201)
-    currencyResponseData = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
+    currencyResponse = ConvertCurrency(currencyData)  # status, error code, amount
+    currencyResponseData = currencyResponse.json()
+
+    # error has occurred when converting currency
+    if currencyResponse.status_code != 200:
+        if "Comment" in currencyResponseData:
+            return errorHandling(201, body=currencyResponseData["Comment"], passedComment=True)
+        else:
+            return errorHandling(201)
+    # currencyResponseData = {"Status": 200, "Error code": None, "Amount": data["Amount"]}
 
     # we now talk to PNS and get them to initiate the payment itself
     paymentData = {"TransactionUUID": data["TransactionUUID"],
@@ -247,10 +249,11 @@ def InitiateRefund(request):
                    }
 
     transactionResponse = RequestRefundPNS(paymentData)
+    transactionResponseData = transactionResponse.json()
     # error has occurred when doing transaction
-    if transactionResponse["StatusCode"] != 200:
-        if "Comment" in transactionResponse:
-            return errorHandling(403, body=transactionResponse["Comment"], passedComment=True)
+    if transactionResponse.status_code != 200:
+        if "Comment" in transactionResponseData:
+            return errorHandling(403, body=transactionResponseData["Comment"], passedComment=True)
         else:
             return errorHandling(403)
 
@@ -322,34 +325,28 @@ def ConvertCurrency(data):
     # post to currency converter API and get response
     response = requests.post('http://samshepherd.eu.pythonanywhere.com/currency/convert/', data=data)
 
-    # this will be changed once their API is up and running
-    # content = response.content
-
-    # used for testing
-    content = {"Status": 200, "Error code": None, "Amount": 1.23}
-
-    return content
+    return response
 
 
 def RequestTransactionPNS(data):
     # post to currency converter API and get response
-    response = requests.post('http://example.com', data=data)
+    response = requests.post('http://samshepherd.eu.pythonanywhere.com/pns/initiatetransactionpns/', data=data)
 
     # this will be changed once their API is up and running
     # content = response.content
 
-    content = {"StatusCode": 200, "TransactionUUID": str(random.randint(0,250)), "Comment": "All good here"}
+    # content = {"StatusCode": 200, "TransactionUUID": str(random.randint(0,250)), "Comment": "All good here"}
 
-    return content
+    return response
 
 def RequestRefundPNS(data):
     # post to currency converter API and get response
-    response = requests.post('http://example.com', data=data)
+    response = requests.post('http://samshepherd.eu.pythonanywhere.com/pns/initiaterefundpns/', data=data)
 
     # this will be changed once their API is up and running
     # content = response.content
 
-    content = {"StatusCode": 200, "Comment": "Refund all good"}
+    # content = {"StatusCode": 200, "Comment": "Refund all good"}
 
-    return content
+    return response
 
